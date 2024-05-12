@@ -1,0 +1,196 @@
+################################################;
+#Author:  Liam Flaherty                         ;
+#Collaborators: N/A                             ;
+#Program Purpose: ST502 Project 2               ;
+#Date: 4/22/2024                                ;
+################################################;
+
+#####1. Load Required Packages And Data#####
+install.packages("stats")
+install.packages("MultiRNG")
+install.packages("ggplot2")
+install.packages("gridExtra")
+library(stats)
+library(MultiRNG)
+library(ggplot2)
+library(gridExtra)
+
+both=85; neither=110; a=40; b=15                              #e.g. 15 got better with B but not A#
+mydata=c(both, b, a, neither)                                 #Put data into a vector#
+mydf=data.frame(c(both, a), c(b, neither))                    #Put data into data frame#
+mymatrix=matrix(mydata, nrow=2, ncol=2, byrow=TRUE)           #Reluctantly put data into a matrix#
+
+
+
+
+
+#####2. Hypothesis Test Set-up#####
+teststat=function(discordant1, discordant2) {
+  ((discordant1-discordant2)^2/(discordant1+discordant2))     #Pearson's Chi-Square#
+}
+
+rr_chi=function(sig, dof) {                                   #Reject for large#
+  qchisq(1-sig, dof)                                          #alpha to the right#
+}
+
+pvalue_chi=function(val, dof) {                               #Probability as extreme (large) under null#
+  1-pchisq(val, dof)                                          #"As large" implies right tail#
+}
+
+
+###2a. Executing Pearson Hypothesis Test###
+significance=0.05                                             #Someone somewhere liked 5%#
+dof=1                                                         #degrees of freedom#
+
+myrr=rr_chi(significance, dof)                                #Reject for values greater than this (3.84)#
+myteststat=teststat(a,b)                                      #Note order doesn't matter. Here (11.36)#
+mypvalue=pvalue_chi(myteststat, dof)                          #Well under 1%#
+
+
+
+###2b. Visuals For Pearson Hypothesis Test###
+xho=seq(from=0, to=5, by=0.01); yho=dchisq(xho, dof)
+pdfho=data.frame(xho,yho)                                     #data.frame>matrix almost always#
+
+plot(pdfho, type="l",                                         #Base R is good enough for me#
+     main=bquote("Distribution Of Test Stat Under Null, " * alpha==.(significance)),
+     xlab="Chi-Square(1)", ylab="Density")              
+
+polygon(c(xho[xho>=myrr], max(xho), myrr),                    #Shade Rejection Region#
+        c(yho[xho>=myrr], 0, 0), col=rgb(1,0,0, alpha=0.15))
+
+legend("topright",                                            #Add a legend to denote rejection region#
+       legend = "Rejection Region", 
+       fill = "red")
+
+text(paste0("Observed Test Stat=", round(myteststat,2)),      #Note where our observed data is#
+     x=4 , y=0.3, cex=0.75)
+
+
+
+###2c. McNemar's Package###
+mymatrix
+mcnemar.test(mymatrix, correct=FALSE)                         #From "stats" package#
+
+
+
+
+
+#####3. Simulation Study#####
+###Load MultiRNG package###
+
+###3a. Initial specifications###
+n=c(25, 40, 80, 200)                                          #Different values of n#
+p1=c(0.1, 0.4, 0.8)                                           #Different mean success rates of drug A#
+pertubation=c(0, 0.02, 0.05, 0.1)                             #Difference in drug efficacy#
+rho=c(0, 0.2, 0.5)                                            #Different correlation values#
+size=1000                                                     #How many iterations we'll test#
+alpha=0.05                                                    #Someone somewhere liked 5% and now we're stuck#
+
+mytest=function(df, sig) {                                    #Arguments are 2x2 df and significance level#
+  reduced=df[which(df[,1] != df[,2]),]                        #Only care about discordant pairs#
+  a=sum(reduced[,1]); b=sum(reduced[,2])                      #Enumerate cases#
+  if(nrow(reduced)==0) {                                      #Dealing with NAs (no discordant pairs)#
+    teststat=0
+  } else {
+    teststat=(a-b)^2/(a+b)                                    #Our observed test stat#
+  }
+  threshold=qchisq(1-sig, 1)                                  #sig% of data lies to right under null#
+  ifelse(teststat>threshold, 1, 0)                            #Returns 1 if reject null#
+}
+
+
+###3b. Perform Simulation###
+set.seed(502)                                                 #To make reproducible#
+count=vector(); reject=vector(); z=0                          #Initialize#
+correlations=vector(); proba=vector();                        #More initializing#
+samplesize=vector(); probb=vector()                           #More initializing#
+
+for (i in 1:length(n)) {                                      #For every sample size...#
+  for (j in 1:length(p1)) {                                   #...And every success rate of A...#
+    for (k in 1:length(pertubation)) {                        #...And every success rate of B...#
+      for (l in 1:length(rho)) {                              #...And every correlation...#
+        for (m in 1:size) {                                   #...Do a lot of iterations#
+          corrmatrix=matrix(c(1, rho[l], rho[l], 1),          #2 by 2 matrix of correlations#
+                            byrow=TRUE, nrow=2, ncol=2)
+          
+          bindata=as.data.frame(                              #Usually prefer working with df's#
+            draw.correlated.binary(n[i], d=2,                 #PRG from MultiRNG package#
+                    prop.vec=c(p1[j], p1[j]+pertubation[k]),  #True proportions#
+                    corr.mat=corrmatrix))                     #Correlation matrix above#
+          
+          count[m]=mytest(bindata, alpha)                     #Keep track of reject/fail to reject#
+          
+        }
+        z=z+1
+        correlations[z]=rho[l]                                #Which correlation produced results#
+        probb[z]=pertubation[k]+p1[j]                         #Which prob B produced results
+        proba[z]=p1[j]                                        #Which prob A produced results#
+        samplesize[z]=n[i]                                    #Which sample size produced results#
+        reject[z]=sum(count)/size                             #% of specific n,p1, rho combos that reject#
+      }
+    }
+  }
+}
+
+fulldf=data.frame(samplesize, proba, probb, correlations, reject)
+
+
+
+###3c. Alpha Analysis###
+alphadf=fulldf[which(fulldf$proba == fulldf$probb),]          #Filter to cases of null hypothesis#
+alphadf
+summary(alphadf$reject)                                       #Worst combo is 6.3% false positive#
+
+
+
+###3d. Power Analysis###
+powerdf=fulldf[which(fulldf$proba != fulldf$probb),]         #Filter to cases of alternative hypothesis#
+power=rep(0.8, nrow(powerdf))                                #80% true positive rate "pretty good"#
+diff=powerdf$probb-powerdf$proba                             #For x-axis#
+powerdf=data.frame(powerdf, power, diff)                     #New df for alternative hypothesis#
+mylist=list(); k=0                                           #Initialize#
+
+for (i in 1:length(p1)) {
+  for (j in 1:length(n)) {
+    k=k+1                                       
+    temp=powerdf[which(powerdf$samplesize==n[j] &            #Temporary df w/ specific size/prob combo#
+                         powerdf$proba==p1[i]),]
+    mylist[[k]]=temp[order(temp$correlations),]              #Store as element in a list#
+  }
+}
+
+
+
+###3e. Visuals###
+plots=list()                                                 #Initialize#
+
+for (i in 1:length(mylist)) {                                #Create one plot for every size/prob combo#
+plots[[i]]=
+  ggplot(mylist[[i]], aes(x = diff, y = reject,              #Target is rejection rate...#
+  group=factor(correlations), color=factor(correlations))) + #...with different correlations in same plot#
+  geom_line(linewidth=1, linetype=1) +                       #regular lines#
+  geom_hline(yintercept=0.8,                                 #Create reference point of "pretty good" rate...#
+             linewidth=1.25, linetype=2, color = "orange") + #...make it dashed and wider to stick out#
+  scale_color_manual(                                        #Set different colors for different correlations#
+    values = c("0"="red", "0.2"="blue", "0.5"="green")) +    
+  ylim(0,1) +                                                #Force y-axis to span [0,1]#
+  ggtitle(bquote("Power Plot (n=" *                          #Title plots to give size/prob combo#
+                   .(mylist[[i]]$samplesize[1]) * ", P1=" *
+                   .(mylist[[i]]$proba[1]) *")")) +
+  xlab("Prob B - Prob A") +                                  #Give x-axis a title#  
+  ylab("Rejection Rate") +                                   #Give y-axis a title#
+  theme_bw() +                                               #I abhor ggplots defaults#
+  theme(legend.position = "none") +                          #See above... get rid of ugly legend#
+  theme(plot.title = element_text(hjust = 0.5)) +            #Center main title#
+  theme(plot.title = element_text(size = 10)) +              #Here and below make font size "fit" w/ 4 plots#
+  theme(axis.text.y = element_text(size = 10))+
+  theme(axis.text.x = element_text(size = 10))
+}
+
+grid.arrange(plots[[1]], plots[[2]],                         #Four plots in 1; ggplot can't do mfrow#
+             plots[[3]], plots[[4]], ncol = 4)
+grid.arrange(plots[[5]], plots[[6]], 
+             plots[[7]], plots[[8]], ncol = 4)
+grid.arrange(plots[[9]], plots[[10]], 
+             plots[[11]], plots[[12]], ncol = 4)
