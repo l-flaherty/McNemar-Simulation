@@ -1,0 +1,471 @@
+\documentclass[12pt, letterpaper]{article}
+\usepackage[left=2.5cm,right=2.5cm, top=2.5cm, bottom=2.5cm]{geometry}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhead[R]{Flaherty, \thepage}
+\renewcommand{\headrulewidth}{2pt}
+\setlength{\headheight}{15pt}
+\usepackage{lipsum}
+\usepackage{cite}
+\usepackage{amsmath}
+\usepackage[makeroom]{cancel}
+\usepackage{cancel}
+\usepackage{array,polynom}
+\newcolumntype{C}{>{{}}c<{{}}} % for '+' and '-' symbols
+\newcolumntype{R}{>{\displaystyle}r} % automatic display-style math mode 
+\usepackage{xcolor}
+\newcommand\Ccancel[2][black]{\renewcommand\CancelColor{\color{#1}}\cancel{#2}}
+% Define a custom environment for examples with an indent
+
+\newenvironment{ex}{
+	\par\medskip % Add some vertical space before the example
+	\leftskip=1em % Set the left indent to 1em (adjust as needed)
+	\noindent\textit{Example:}\,
+}{
+	\par\medskip % Add some vertical space after the example
+	\leftskip=0em % Reset the left indent
+}
+
+\newcommand{\mymatrix}[1]{
+	\renewcommand{\arraystretch}{0.5} % Adjust vertical spacing%
+	\setlength\arraycolsep{3pt}       % Adjust horizontal spacing%
+	\scalebox{0.90}{                  % Change font size%
+		$\begin{bmatrix}
+			#1
+		\end{bmatrix}$
+	}                   
+	\renewcommand{\arraystretch}{1.0} % Reset vertical spacing
+	\setlength\arraycolsep{6pt}       %Adjust horizontal spacing%
+}
+
+
+
+\newenvironment{nonex}{
+	\par\medskip % Add some vertical space before the example
+	\leftskip=1em % Set the left indent to 1em (adjust as needed)
+	\noindent\textit{Non-example:}\,
+}{
+	\par\medskip % Add some vertical space after the example
+	\leftskip=0em % Reset the left indent
+}
+
+\usepackage{amssymb}
+\usepackage{bbm}
+\usepackage{mathrsfs}
+\usepackage[toc]{glossaries}
+\usepackage{amsthm}
+\usepackage{indentfirst}
+\usepackage[utf8]{inputenc}
+\usepackage[thinc]{esdiff}
+\usepackage{graphicx}
+\graphicspath{{./images/}}
+\usepackage{subfig}
+\usepackage{chngcntr}
+\usepackage{placeins}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{comment}
+\usepackage{sectsty}
+\usepackage{enumitem} 
+\sectionfont{\fontsize{15}{15}\selectfont}
+\usepackage{subcaption}
+\setlength\abovedisplayskip{0pt}
+\usepackage[hidelinks]{hyperref}
+\usepackage[nottoc,numbib]{tocbibind}
+\renewcommand{\qedsymbol}{\rule{0.7em}{0.7em}}
+\newcommand{\Mod}[1]{\ (\mathrm{mod}\ #1)}
+\counterwithin{figure}{section}
+\usepackage{centernot}
+\theoremstyle{definition}
+\newtheorem{exmp}{Example}
+\newtheorem{nonexmp}{Non-Example}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{definition}{Definition}[section]
+\newtheorem{lemma}{Lemma}[theorem]
+\newtheorem{prop}{Proposition}[theorem]
+\numberwithin{equation}{section}
+\newcommand{\mydef}[1]{(Definition \ref{#1}, Page \pageref{#1})}
+\newcommand{\mylemma}[1]{(Lemma \ref{#1}, Page \pageref{#1})}
+\newcommand{\myprop}[1]{(Proposition \ref{#1}, Page \pageref{#1})}
+\newcommand{\mytheorem}[1]{(Theorem \ref{#1}, Page \pageref{#1})}
+\newcommand{\clickableword}[2]{\hyperref[#1]{#2}}
+\newcommand{\samp}[1]{\underset{\sim}{\hat{#1}}}
+\newcommand{\drv}[1]{\frac{d }{d #1}}
+\newcommand{\pdrv}[1]{\frac{\partial }{\partial #1}}
+
+%underscript for operations%
+\newcommand{\+}[1]{+_{\scalebox{.375}{#1}}}
+\newcommand{\mult}[1]{\cdot_{\scalebox{.375}{#1}}}
+
+%shortcuts for estimators%
+\newcommand{\estimator}[1]{\underset{\sim}{#1}}
+\newcommand{\mom}[1]{\underset{\sim}{#1_{\scalebox{0.35}{MOM}}}}
+\newcommand{\mle}[1]{\underset{\sim}{#1_{\scalebox{0.35}{MLE}}}}
+
+%blackboard for letters%
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\V}{\mathbb{V}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\K}{\mathbb{K}}
+\newcommand{\1}{\mathbbm{1}}
+\newcommand{\Prob}{\mathbbm{P}}
+
+\title{Statistical Inference Project \# 2}
+\author{Liam Flaherty}
+\date{\parbox{\linewidth}{\centering%
+		Professor Post\endgraf\bigskip
+		NCSU: ST502-002\endgraf\bigskip
+		April 17, 2024 \endgraf}}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\newpage\tableofcontents	
+\newpage\clearpage\noindent
+
+\section{Introduction}\label{section.intro}
+McNemar's Test is used to judge the symmetry of a two-by-two contingency table \cite{Ritem}. In applications, this can look like testing the difference in concordant/discordant pairs. An important rationale for why one might use McNemar's Test as opposed to some other test is that the observed pairs are not independent, since each observation is self-dependent. 
+\vspace{\baselineskip}
+
+In this project we are given data on 250 individuals who undergo treatment for an illness. Half of the individuals are randomly assigned to take drug A the first time their symptoms flare up, and then assigned to take drug B the second time their symptoms flare up. The other half of individuals are assigned to do the reverse (first take drug B, then drug A). Data was collected on each subject after each episode to determine if the administered drugs were successful in treating the symptoms or not. In total, 85 people experienced relief with both drugs, 40 people experienced relief with drug $A$ only, 15 people experienced relief with drug $B$ only, and 110 people didn't experience relief with either drug.
+\vspace{\baselineskip}
+
+Of interest is whether the drugs have a different probability of giving relief. Our null hypothesis is that there is no relationships between the drugs and the probability of relief. An easy result \myprop{prop.equiv} shows that this hypothesis essentially says that the probability one gets better with drug A but not drug B is equal to the probability one gets better with drug B but not drug A. Our alternative hypothesis is that all the probabilities are free (subject to the constraint they sum to one).
+\vspace{\baselineskip}
+
+Label $n_{1,2}$ as the number of people who improve with drug B but not drug A, $n_{2,1}$ as the number of people who improve with drug A but not drug B, and $n_{2,2}$ as the number of people who don't improve with either. Further, label  $\text{dim}(\Omega)$ as the number of free parameters over the whole parameter space, and $\text{dim}(\omega_0)$ as the number of free parameters over the null parameter space. McNemar's test statistic is $\frac{(n_{1,2}-n_{2,1})^2}{n_{1,2}+n_{2,1}}$ \myprop{prop.pearsonstat}, which we claim without proof converges in distribution to a chi-squared random variable with $\text{dim}(\Omega)-\text{dim}(\omega_0)=1$ degree of freedom \myprop{prop.df}. We reject our null hypothesis for large observed values of this reference distribution (where ``large" is of course a function of our significance level).
+\vspace{\baselineskip}
+
+In Section \ref{section.hypothesistest}, we show the results and derivation of our hypothesis test. In particular, we record a p-value for our goodness of fit of about 0.0007 and reject the null hypothesis of ``equal probability of relief" after observing a test statistic of about 11.364 (well inside our rejection region of $>3.84$).
+\vspace{\baselineskip}
+
+In Section \ref{section.simulation}, we perform simulation for our test with the goal of conducting a power-analysis for certain alternatives, and determining how well our tests do at controlling Type I Error. In doing so, we reach some natural conclusions--- for example, our false positive rate should approach our significance level after many observations, and the power of a test moves in tandem with sample size and the difference in true means.
+\vspace{\baselineskip}
+
+
+
+
+
+
+
+\newpage
+\section{Theoretical Preliminaries}\label{section.theory}
+
+\begin{prop}\label{prop.equiv}
+	In a two-by-two table of probabilities given by concordant/discordant pairs, the statement that both $p_{1,\bullet}=p_{\bullet, 1}$ and $p_{2,\bullet}=p_{\bullet, 2}$ is equivalent to the statement $p_{1,2}=p_{2,1}$.
+	
+	\begin{proof}
+		This is just arithmetic. First assume that both $p_{1,\bullet}=p_{\bullet, 1}$ and $p_{2,\bullet}=p_{\bullet, 2}$. Then since $p_{1,\bullet}=p_{1,1}+p_{1,2}$ and since $p_{\bullet, 1}=p_{1,1}+p_{2,1}$, by our assumption, $p_{1,1}+p_{1,2}=p_{1,1}+p_{2,1}$ and thus $p_{1,2}=p_{2,1}$.
+		\vspace{\baselineskip}
+		
+		Now assume that $p_{1,2}=p_{2,1}$. Then $\left[p_{\bullet, 1}=p_{1,1}+p_{2,1}\right]=\left[p_{1,1}+p_{1,2}=p_{1, \bullet}\right]$ and further $\left[p_{\bullet, 2}=p_{1,2}+p_{2,2}\right]=\left[p_{1,1}+p_{2,1}=p_{1,1}+p_{1,2}=p_{2,\bullet}\right]$. This proves the equivalence. 
+	\end{proof} 
+\end{prop}
+
+
+
+
+
+\addcontentsline{toc}{subsection}{\numberline{} Degrees Of Freedom}
+\begin{prop}\label{prop.df}
+	In the problem outlined in the introduction, the degrees of freedom for our asymptotically equivalent test statistic is 1.
+	
+	\begin{proof}
+		The full parameter space has dimension three, since there are four options with a sum to one constraint; $\text{dim}(\Omega)=4-1=3$. The null parameter space has dimension two, since the null hypothesis equates two pairs of probabilities, and since there is still a sum to one constraint; $\text{dim}(\omega_0)=4-1-1=2$. Together, we have $\text{dim}(\Omega)-\text{dim}(\omega_0)=1$.
+	\end{proof}
+\end{prop}
+
+
+
+
+
+
+\addcontentsline{toc}{subsection}{\numberline{} Likelihood Derivations}
+\begin{prop}\label{prop.multinomialmle}
+	In a multinomial distribution with $m$ classes where $y_i$ denotes the observed number of objects in class $i$, the maximum likelihood estimator of the parameter $p_i$ is $\underset{\sim}{{p_i}_{\scalebox{.35}{MLE}}}=\frac{y_i}{n}$.
+	
+	\begin{proof}
+		The likelihood function is given by $L(p_1, \dots, p_m)=\frac{n!}{p_1! \cdots p_m!} \prod\limits_{i=1}^{m} p_i^{y_i}=n!\prod\limits_{i=1}^{m} \frac{p_i^{y_i}}{y_i!}$.\vspace{0.25cm}
+		
+		The log-likelihood is then $l(p_1, \dots, p_m)=\ln(n!)+\sum\limits_{i=1}^{m}y_i\ln(p_i)-\sum\limits_{i=1}^{n}\ln(y_i!)$
+		
+		With the introduction of our sum-to-one constraint, the Lagrangian is:
+		
+		\vspace{-0.5cm}
+		\begin{align*}
+			\mathcal{L}(p_1, \dots, p_m)=l(p_1, \dots, p_m)+\lambda(1-\sum\limits_{i=1}^{n}p_i)
+		\end{align*}
+		
+		
+		Finding the maximum: $\frac{\partial}{\partial p_i} \mathcal{L}(p_1, \dots, p_m)=y_i\frac{1}{p_i}-\lambda \implies p_i=\frac{y_i}{\lambda}$
+		\vspace{\baselineskip}
+		
+		Plugging these values into our constraint: $ \frac{1}{\lambda}\sum\limits_{i=1}^{m}y_i=1 \implies \frac{n}{\lambda}=1 \implies \lambda=n$
+		\vspace{\baselineskip}
+		
+		Re-substituting back to our derived maximum, we reach our conclusion: $\underset{\sim}{{p_i}_{\scalebox{0.35}{MLE}}}=\frac{Y_i}{n}$.
+		
+	\end{proof}
+\end{prop}
+
+
+
+
+
+\newpage
+\begin{prop}\label{prop.restrictedmle}
+	In a restricted multinomial distribution with $4$ classes (two of which are identical) where $y_i$ denotes the observed number of objects in class $i$, the maximum likelihood estimator of the restricted parameters (call them $p_{2}$ and $p_{3}$) is $\underset{\sim}{{p_i}_{\scalebox{.35}{Null}}}=\frac{y_2+y_3}{2n}$. The unrestricted parameters have a MLE of $\underset{\sim}{{p_1}_{\scalebox{.35}{Null}}}=\frac{y_1}{n}$ and $\underset{\sim}{{p_4}_{\scalebox{.35}{Null}}}=\frac{y_4}{n}$ respectively.
+	
+	\begin{proof}
+	We use the same set-up as Proposition \ref{prop.multinomialmle} while considering the additional restriction $p_2=p_3$. With these two constraints, our Lagrangian becomes (where $c$ is some constant unrelated to our parameters of interest):
+	
+	\vspace{-0.5cm}
+	\begin{align*}
+		\mathcal{L}(p_1,\dots, p_4)=c+\sum\limits_{i=1}^{4}y_i \ln(p_i)+\lambda_1(1-\sum\limits_{i=1}^{4}p_i)+\lambda_2(p_2-p_3)
+	\end{align*}
+
+	Taking the partials, we see:
+	
+	\vspace{-0.5cm}
+	\begin{align*}
+		\frac{\partial}{\partial p_1} \mathcal{L}(p_1, \dots, p_4)&=\frac{y_1}{p_1}-\lambda_1 && 	\frac{\partial}{\partial p_4} \mathcal{L}(p_1, \dots, p_4)=\frac{y_4}{p_4}-\lambda_1\\
+		\frac{\partial}{\partial p_2} \mathcal{L}(p_1, \dots, p_4)&=\frac{y_2}{p_2}-\lambda_1+\lambda_2 &&
+		\frac{\partial}{\partial p_3} \mathcal{L}(p_1, \dots, p_4)=\frac{y_3}{p_3}-\lambda_1-\lambda_2
+	\end{align*}
+
+	After setting these all to zero, writing each equation in terms of $y_i$, and then recognizing that $\sum\limits_{i=1}^{4}y_i=n$, we can write:
+	
+	\vspace{-0.5cm}
+	\begin{align*}
+		n&=\lambda_1p_1+(\lambda_1-\lambda_2)p_2+(\lambda_1+\lambda_2)p_3+\lambda_1p_4\\
+		&=(p_1+p_2+p_3+p_4)\lambda_1+(p_2-p_3)\lambda_2 &&\text{Grouping}\\
+		&=([1])\lambda+([0])\lambda_2=\lambda_1 &&\text{Constraints}
+	\end{align*}
+
+	Resubstituting to our equations for $y_1$ and $y_4$, we get our MLEs for those two:
+	
+	\begin{align*}
+		\frac{y_1}{p_1}=n \implies \underset{\sim}{{p_1}_{\scalebox{.35}{Null}}}=\frac{y_1}{n} \text{ and } \frac{y_4}{p_4}=n \implies \underset{\sim}{{p_4}_{\scalebox{.35}{Null}}}=\frac{y_4}{n}
+	\end{align*}
+
+	Then using the constraint $\sum\limits_{i=1}^{4}p_i=1$ and plugging in the above, we see:
+	
+	\begin{align*}
+		1&=\frac{y_1}{n}+\frac{y_4}{n}+p_2+p_3=\frac{y_1}{n}+\frac{y_4}{n}+2p_2 &&\text{Constraint $p_2=p_3$}\\
+		n&=y_1+y_4+2p_2n\\
+		y_2+y_3&=2np_2 \implies \frac{y_2+y_3}{2n}=\underset{\sim}{{p_2}_{\scalebox{.35}{Null}}}=\underset{\sim}{{p_3}_{\scalebox{.35}{Null}}} &&\text{Constraint $n=\sum\limits_{i=1}^{4}y_i=n$}&
+	\end{align*}
+
+	This proves our result.
+	\end{proof}
+\end{prop}
+
+
+
+\newpage
+\addcontentsline{toc}{subsection}{\numberline{} Pearson's Chi-Squared Test}
+\begin{prop}\label{prop.lrtforgof}
+	The likelihood ratio test statistic when conducting a goodness of fit test for the multinomial distribution (with $m$ classes) against a restricted model (with $k-1$ free parameters) is $2\sum\limits_{i=1}^{m}Obs_i\ln\left(\frac{Obs_i}{Exp_i}\right)$, which asymptotically follows a $\chi^2_{m-k-1}$
+		
+	\begin{proof}	
+		Where $\Theta=(p_1, \dots, p_m)$, our likelihood ratio is: $\Lambda=\frac{\max\limits_{\Theta \in \omega_0}L(\Theta)}{\max\limits_{\Theta \in \Omega}L(\Theta)}=\frac{L(\underset{\sim}{\Theta_{\scalebox{.35}{Null}}})}{L(\mle\Theta)}$.
+		\vspace{\baselineskip}
+		
+		From the above proposition \myprop{prop.multinomialmle}, we know we will get cancellation between the likelihood functions and so are left with $\Lambda=\frac{\underset{\sim}{{p_1}_{\scalebox{.35}{Null}}}^{y_1}\cdots \underset{\sim}{{p_m}_{\scalebox{.35}{Null}}}^{y_m}}{\underset{\sim}{{p_1}_{\scalebox{.35}{MLE}}}^{y_1}\cdots \underset{\sim}{{p_m}_{\scalebox{.35}{MLE}}}^{y_m}}=\prod\limits_{i=1}^{m}\left(\frac{\underset{\sim}{{p_i}_{\scalebox{.35}{Null}}}}{\underset{\sim}{{p_i}_{\scalebox{.35}{MLE}}}}\right)^{y_i}$.
+		\vspace{\baselineskip}
+		
+		From large-sample theory, we then have:
+		
+		\vspace{-0.5cm}
+		\begin{align*}
+			-2\ln(\Lambda) &\stackrel{\stackrel{H_o}{\bullet}}{\sim} \chi^2_{m-k-1}\\
+			-2\sum\limits_{i=1}^{m}y_i\ln\left(\frac{\underset{\sim}{{p_i}_{\scalebox{.35}{Null}}}}{\underset{\sim}{{p_i}_{\scalebox{.35}{MLE}}}}\right) &\stackrel{\stackrel{H_o}{\bullet}}{\sim} \chi^2_{m-k-1}\\
+			2\sum\limits_{i=1}^{m}y_i\ln\left(\frac{\underset{\sim}{{p_i}_{\scalebox{.35}{MLE}}}}{\underset{\sim}{{p_i}_{\scalebox{.35}{Null}}}}\right) &\stackrel{\stackrel{H_o}{\bullet}}{\sim} \chi^2_{m-k-1}\\
+			2\sum\limits_{i=1}^{m}y_i\ln\left(\frac{y_i}{n\underset{\sim}{{p_i}_{\scalebox{.35}{Null}}}}\right) &\stackrel{\stackrel{H_o}{\bullet}}{\sim} \chi^2_{m-k-1} &&\text{From Proposition \ref{prop.multinomialmle}, Page \pageref{prop.multinomialmle}}\\			
+		\end{align*}
+	
+		Under the null hypothesis, the expected number of observations in class $i$ is precisely $n\underset{\sim}{{p_i}_{\scalebox{.35}{Null}}}$  (since the expected value of a $\text{Binom}(n,p)$ is $np$). Then since $y_i$ are our observed values, we can write the above as $2\sum\limits_{i=1}^{m}Obs_i\ln\left(\frac{Obs_i}{Exp_i}\right)\stackrel{\stackrel{H_o}{\bullet}}{\sim} \chi^2_{m-k-1}$
+	\end{proof}
+\end{prop}
+
+\begin{ex}\label{ex.specificteststat}
+	Applying the above derivation to the problem outlined in the introduction, we break up the sum of our four classes to first sum over two rows, and then sum over the two columns. Proposition \ref{prop.df} showed that our degrees of freedom is 1, so we are left with $2\sum\limits_{j=1}^{2}\sum\limits_{i=1}^{2}Obs_{i,j}\ln\left(\frac{Obs_{i,j}}{Exp_{i,j}}\right) \stackrel{\stackrel{H_o}{\bullet}}{\sim} \chi^2_{1}$. 
+\end{ex}
+
+
+\newpage
+\addcontentsline{toc}{subsection}{\numberline{} Equivalence Of McNemar's Test}
+\begin{prop}\label{prop.pearsonstat}
+	We showed that $2\sum\limits_{j=1}^{2}\sum\limits_{i=1}^{2}Obs_{i,j}\ln\left(\frac{Obs_{i,j}}{Exp_{i,j}}\right) \stackrel{\stackrel{H_o}{\bullet}}{\sim} \chi^2_{1}$ in the example to Proposition \ref{prop.lrtforgof} above. We claim without proof that this is asymptotically the same as Pearson's Chi-Square statistic, $\sum\limits_{i=1}^{m}\frac{(Obs_i-Exp_i)^2}{Exp_i}$. For the problem outlined in the introduction, Pearson's Chi-Square statistic can be written as $\sum\limits_{j=1}^{2}\sum\limits_{i=1}^{2}\frac{(Obs_{i,j}-Exp_{i,j})^2}{Exp_{i,j}}$, which we claim is the same thing as $\frac{(n_{1,2}-n_{2,1})^2}{n_{1,2}+n_{2,1}}$ (or equivalently $\frac{(y_{3}-y_{2})^2}{y_{3}+y_{2}}$ if we use the same notation as above, where $y_i$ indicates the observed number of objects in class $i$).
+	
+	\begin{proof}
+		From Proposition \ref{prop.restrictedmle}, we know that $\underset{\sim}{{p_{1,1}}_{\scalebox{.35}{Null}}}=\frac{y_1}{n}$ and $\underset{\sim}{{p_{2,2}}_{\scalebox{.35}{Null}}}=\frac{y_4}{n}$. Then since $Exp_{i,j}$ is $n \cdot \underset{\sim}{{p_{i,j}}_{\scalebox{.35}{Null}}}$, $Exp_{1,1}=y_1$ and $Exp_{2,2}=y_4$. Thus the numerator in Pearson's test for those cases is $(Obs_i-Exp_i)^2=(y_i-y_i)^2=0$; the only contribution to the statistic comes from the discordant cells.
+		\vspace{\baselineskip}
+		
+		Again from Proposition \ref{prop.restrictedmle}, we know that $\underset{\sim}{{p_{1,2}}_{\scalebox{.35}{Null}}}=\underset{\sim}{{p_{2,1}}_{\scalebox{.35}{Null}}}=\frac{y_2+y_3}{2n}$. Then since $Exp_{i,j}=n \cdot \underset{\sim}{{p_{i,j}}_{\scalebox{.35}{Null}}}$, we can write $Exp_{1,2}=Exp_{2,1}=n \frac{y_2+y_3}{2n}=\frac{y_2+y_3}{2}$. Plugging in these expectations, Pearson's test statistic can be written:
+		
+		\begin{align*}
+			\frac{\left(y_2-\frac{y_2+y_3}{2}\right)^2}{\frac{y_2+y_3}{2}}{+}\frac{\left(y_3-\frac{y_2+y_3}{2}\right)^2}{\frac{y_2+y_3}{2}}=
+			\frac{\left(\frac{y_2-y_3}{2}\right)^2}{\frac{y_2+y_3}{2}}{+}\frac{\left(\frac{y_3-y_2}{2}\right)^2}{\frac{y_2+y_3}{2}}=\frac{\frac{2(y_3-y_2)^2}{4}}{\frac{y_2+y_3}{2}}=\frac{(y_3-y_2)^2}{y_3+y_2}=\frac{(n_{1,2}-n_{2,1})^2}{n_{1,2}+n_{2,1}}
+		\end{align*}	
+	
+	This proves our result.			
+	\end{proof}
+\end{prop}
+
+
+
+
+
+\newpage
+\section{Hypothesis Test}\label{section.hypothesistest}
+
+Our null hypothesis was that there was no relationship between the drugs and relief: $H_0: p_{1,2}=p_{2,1}$. Our alternative hypothesis was that the cells were free. Where $n_{1,2}$ represents the observed number of people who improved with drug B but not drug A, and where $n_{2,1}$ represents the observed number of people who improved with drug A but not drug B, our test statistic is $\frac{(n_{1,2}-n_{2,1})^2}{n_{1,2}+n_{2,1}}$ \myprop{prop.pearsonstat}. Asymptotically, this test statistic follows a $\chi_1^2$ \myprop{prop.multinomialmle}, which we choose to use for our distribution under the null hypothesis. 
+\vspace{\baselineskip}
+
+We reject the null hypothesis in favor of the alternative for large values of our test stat. We set up our rejection threshold with an arbitrarily chosen significance level of 5\% (i.e. when the null hypothesis is true, we should only incorrectly reject the null hypothesis 5\% of the time). The below R code shows how we calculated the rejection regions and p-values. Of note is a recorded p-value of about 0.0007, which we verify with the $\text{mcnemar.test()}$ function in R's ``stat" package. Since our observed test statistic (11.364) lies inside our rejection region ($>3.84$), we reject our null hypothesis.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=14cm]{Proj2HypTest}
+	\captionof{figure}{R Code For Hypothesis Test}
+	\label{figure.Proj2HyptTest}
+\end{figure}
+\vspace{-0.65cm}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=8cm]{Proj2McNemar}
+	\captionof{figure}{R Package For McNemar's Test To Verify Above}
+	\label{figure.McNemar}
+\end{figure}
+
+
+
+\newpage\section{Simulation}\label{section.simulation}
+
+With the help of some online resources \cite{draw.correlated}, we were able to simulate data to examine the power of our test under different circumstances. The simulation was conducted by trying different combinations of sample size, probability of reliefs, and correlations. Under every such combination, the draw.correlated.binary() function from R's "stats" package was used to create 1000 different observations from the data. The proportion of these 1000 simulated observations that had a test-stat \myprop{prop.pearsonstat} lying inside our rejection region (determined by a 5\% significance level) were then recorded.
+\vspace{\baselineskip}
+
+Before examining the results, it is worthwhile to show the specifics of how our simulation was conducted. The draw.correlated.binary() function works by generating (pseudo) random binary data under certain specifications. In the below code, we can see the outcomes for a sample size of 10, where the true probability of relief from drug A was 0.4, the true probability of relief from drug B was 0.6, and a correlation was chosen to be 0.1. The rows with two ``1"'s correspond to the case where patients experience relief after taking both drugs A and B, the rows with ``1 0" correspond to a patient who only experienced relief with drug A, etc.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=15cm]{Proj2ToyExample}
+\end{figure}
+
+The above would be one observation of the 1000 carried out for that specific combination of values. In all, we tested sample sizes ranging from 25 to 200, true probability differences ranging from 0 to 0.1, and correlations ranging from 0 to 0.5. The specifics are shown below, along with a user-defined function which takes as input the observation and our significance level, and outputs either a ``1" (reject null hypothesis) or ``0".
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=15cm]{Proj2SimR}
+\end{figure}
+
+Our simulation was conducted in a way intended to make R aficionado's skin crawl--- lots of ``for" loops! The below figure shows the script used to generate the $1000 \times 4 \times 3 \times 4 \times 3=144000$ different simulated observations. 
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=15cm]{Proj2Sim2}
+\end{figure}
+
+\newpage
+First, we studied how well our tests controlled for Type I error. We artificially set our significance level at 5\%, so would suspect/hope that in cases where the null hypothesis is true (i.e. the true probability of relief from A is the same as the true probability of relief from B) we would only incorrectly reject the null hypothesis 5\% of the time over the long-run. The below script shows that with 1000 observations, this is largely seen to be true. In the 36 combinations of sample sizes, true probabilities, and correlations that we tried, the largest our Type I Error got was 6.3\%, while the average Type I Error was below 5\%.
+
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=15cm]{Proj2Alpha}
+	\captionof{figure}{Alpha Control Of Simulation}
+	\label{figure.alphacontrol}
+\end{figure}
+\addcontentsline{toc}{subsection}{\numberline{} Alpha Control}
+
+
+\newpage
+Next, we studied how powerful our tests were. To do so, we stored segments of our simulation with the same sample size and true probability together as elements in a list. With this list in hand, we were able to build line plots with R's ``ggplot" package, grouping together different correlations on the same plot, and adding features as desired. The below code makes clear how we did so.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=15cm]{Proj2Beta}
+\end{figure}
+
+The power plots of these results (see Figure \ref{figure.powerplot0.8} below) tell a few simple tales. First, a test's power is a function of the alternative--- when the true difference in the effectiveness between drugs A and B is small, the test will reject less often than when the true difference is large. Second, sample size is integral to the power of a test. Note that even when the effectiveness of drug A and B truly differed by 10\%, no combination of probability and correlation was sufficient to breach a power of 80\% with a sample size under 200. Finally, and somewhat of a technical point, the correlation of the true probabilities when generating the simulated data was important. As correlation between variables increases, one should expect the rejection rates to increases as well. This is actually fairly important, as the whole reason why we used McNemar's test in the first place was that the data was not independent.
+
+
+\newpage
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=16cm]{Proj2PowerPlots0.1}
+	\label{figure.powerlot0.1}
+\end{figure}
+\vspace{-0.5cm}
+\addcontentsline{toc}{subsection}{\numberline{} Power Analysis}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=16cm]{Proj2PowerPlots0.4}
+	\label{figure.powerplot0.4}
+\end{figure}
+\vspace{-0.5cm}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=16cm]{Proj2PowerPlots0.8}
+	\captionof{figure}{Power Plots For Different Combinations Of Size And Probabilities \newline\centering Red=0.0 Correlation, Blue=0.2 Correlation,  Green=0.5 Correlation}
+	\label{figure.powerplot0.8}
+\end{figure}
+
+
+
+
+
+\newpage\section{Full R Code}\label{section.rcode}
+
+A .R file is also attached.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=15cm]{Proj2RCode1}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=15cm]{Proj2RCode2}
+\end{figure}
+
+\vspace{-0.5cm}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=15cm]{Proj2RCode3}
+\end{figure}
+\vspace{-0.5cm}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=15cm]{Proj2RCode4}
+\end{figure}
+\vspace{-0.5cm}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=15cm]{Proj2RCode5}
+\end{figure}
+\vspace{-0.5cm}
+
+
+
+
+\newpage\label{section.references}
+\begin{thebibliography}{100}
+	\bibitem{Ritem} \textit{Mcnemar.test: Mcnemar’s chi-squared test for count data RDocumentation}. Available at: https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/mcnemar.test (Accessed: 20 April 2024)
+	
+	\bibitem{draw.correlated} Howson, I. (2021) \textit{Draw.correlated.binary: Generation of correlated binary data in multirng: Multivariate pseudo-random number generation, draw.correlated.binary: Generation of Correlated Binary Data in MultiRNG: Multivariate Pseudo-Random Number Generation}. Available at: https://rdrr.io/cran/MultiRNG/man/draw.correlated.binary.html (Accessed: 20 April 2024). 
+\end{thebibliography}
+
+\end{document}
